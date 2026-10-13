@@ -49,12 +49,14 @@ export function App() {
   const canvasPauseRef = useRef(null);
   const avatarRef = useRef(null);
   const themeTransitionRef = useRef(false);
-  const themeRef = useRef("dark");
   const pullStartYRef = useRef(null);
   const pullDistanceRef = useRef(0);
   const suppressClickRef = useRef(false);
   const [now, setNow] = useState(() => new Date());
-  const [theme, setTheme] = useState("dark");
+  const [theme, setTheme] = useState(() =>
+    window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light",
+  );
+  const themeRef = useRef(theme);
   const [pullCount, setPullCount] = useState(0);
   const [pullOffset, setPullOffset] = useState(0);
   const [isPulling, setIsPulling] = useState(false);
@@ -189,9 +191,19 @@ export function App() {
     return () => window.clearInterval(intervalId);
   }, []);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
+    themeRef.current = theme;
     document.documentElement.dataset.theme = theme;
+    canvasRenderRef.current?.();
   }, [theme]);
+
+  useEffect(() => {
+    const systemTheme = window.matchMedia("(prefers-color-scheme: dark)");
+    const syncTheme = () => setTheme(systemTheme.matches ? "dark" : "light");
+    syncTheme();
+    systemTheme.addEventListener("change", syncTheme);
+    return () => systemTheme.removeEventListener("change", syncTheme);
+  }, []);
 
   useEffect(() => {
     document.querySelectorAll("img").forEach((image) => {
